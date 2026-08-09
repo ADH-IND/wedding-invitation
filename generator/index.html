@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Buat link undangan pernikahan personal dan pesan siap kirim."
+    />
+    <title>Madiva Studio — Invitation Link Generator</title>
+    <link rel="stylesheet" href="css/generator.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="#top" aria-label="Madiva Studio">
+          <img
+            src="../admin/assets/madiva-studio-logo.png"
+            alt="Logo Madiva Studio"
+          />
+          <span
+            ><strong>Madiva Studio</strong
+            ><small>Wedding Invitation Tools</small></span
+          >
+        </a>
+        <a class="header-link" href="#cara-penggunaan">Cara Penggunaan</a>
+      </div>
+    </header>
+
+    <main id="top" class="generator-shell">
+      <section class="intro" aria-labelledby="generator-title">
+        <p class="eyebrow">Madiva Studio</p>
+        <span class="intro-badge">Mudah · Cepat · Tanpa Login</span>
+        <h1 id="generator-title">Buat Undangan <em>Personal</em></h1>
+        <p>
+          Personalisasi link dan pesan undangan untuk setiap tamu dengan cepat
+          dan mudah.
+        </p>
+      </section>
+
+      <section
+        id="cara-penggunaan"
+        class="how-to"
+        aria-labelledby="how-to-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">Cara Penggunaan</p>
+          <h2 id="how-to-title">
+            Tiga langkah sederhana untuk membuat undangan personal.
+          </h2>
+        </div>
+        <div class="how-to__grid">
+          <article>
+            <span>1</span>
+            <h3>Tempel Link Undangan</h3>
+            <p>Masukkan link undangan yang telah Anda terima dari Madiva Studio.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Isi Nama Tamu</h3>
+            <p>Masukkan nama tamu yang ingin dibuatkan undangan personal, lalu pilih gaya pesan yang sesuai.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Generate &amp; Bagikan</h3>
+            <p>Klik Generate Undangan, lalu salin pesan atau bagikan langsung melalui WhatsApp.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="generator-card" aria-labelledby="form-title">
+        <div class="card-heading">
+          <div>
+            <h2 id="form-title">Personalisasi Undangan</h2>
+            <p>
+              Masukkan link undangan dan nama tamu, lalu pilih gaya pesan yang
+              sesuai.
+            </p>
+          </div>
+          <div class="steps" aria-label="Tiga langkah pembuatan undangan">
+            <span><b>1</b>Link</span><span><b>2</b>Nama</span
+            ><span><b>3</b>Gaya</span>
+          </div>
+        </div>
+        <form id="generator-form" novalidate>
+          <label for="base-link"
+            >Link Undangan
+            <span class="field-helper">Masukkan link undangan yang telah Anda terima dari Madiva Studio.</span>
+            <input
+              id="base-link"
+              name="baseLink"
+              type="url"
+              inputmode="url"
+              placeholder="https://domain.com/budi-ani"
+              autocomplete="url"
+              required
+            />
+          </label>
+          <label for="guest-name"
+            >Nama Tamu
+            <span class="field-helper"
+              >Nama ini akan tampil secara personal pada undangan.</span
+            >
+            <input
+              id="guest-name"
+              name="guestName"
+              type="text"
+              placeholder="Contoh: Andi Saputra"
+              maxlength="150"
+              autocomplete="name"
+              required
+            />
+          </label>
+          <label for="message-style"
+            >Gaya Pesan
+            <select id="message-style" name="messageStyle">
+              <option value="umum" selected>Umum</option>
+              <option value="teman">Teman</option>
+              <option value="keluarga">Keluarga / Orang Tua</option>
+              <option value="rekanKerja">Rekan Kerja</option>
+            </select>
+          </label>
+          <p id="style-description" class="style-description">
+            Sopan dan cocok untuk berbagai penerima.
+          </p>
+          <p id="form-error" class="form-error" role="alert"></p>
+          <button class="button button-primary" type="submit">
+            Generate Undangan <span aria-hidden="true">→</span>
+          </button>
+        </form>
+      </section>
+
+      <section
+        id="result"
+        class="result-card"
+        hidden
+        aria-labelledby="result-title"
+      >
+        <div class="result-heading">
+          <span class="success-mark" aria-hidden="true">✓</span>
+          <div>
+            <h2 id="result-title">Undangan siap dibagikan</h2>
+            <p>Link personal dan pesan Anda sudah siap.</p>
+          </div>
+        </div>
+        <dl class="result-summary">
+          <div>
+            <dt>Nama Tamu</dt>
+            <dd id="result-guest-name"></dd>
+          </div>
+          <div>
+            <dt>Gaya Pesan</dt>
+            <dd id="result-style"></dd>
+          </div>
+        </dl>
+        <h3>Link Personal</h3>
+        <p id="result-link" class="long-link"></p>
+        <h3>Preview Pesan</h3>
+        <textarea
+          id="result-message"
+          rows="13"
+          readonly
+          aria-label="Preview pesan undangan"
+        ></textarea>
+        <div class="primary-actions">
+          <button id="copy-message" class="button button-copy" type="button">
+            Salin Link &amp; Pesan</button
+          ><button
+            id="share-whatsapp"
+            class="button button-whatsapp"
+            type="button"
+          >
+            <span aria-hidden="true">◔</span> Share ke WhatsApp
+          </button>
+        </div>
+        <button id="next-guest" class="secondary-action" type="button">
+          + Buat untuk Tamu Berikutnya
+        </button>
+      </section>
+
+    </main>
+    <footer>© Madiva Studio <span>Digital Wedding Invitation</span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="js/chat-templates.js"></script>
+    <script src="js/generator.js"></script>
+  </body>
+</html>

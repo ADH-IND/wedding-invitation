@@ -1,0 +1,13 @@
+{
+  "id": "template-001",
+  "name": "Elegant Minimalist",
+  "version": "1.0.0",
+  "description": "Elegant minimalist wedding invitation template.",
+  "sections": [
+    "couple",
+    "event",
+    "digital_gift",
+    "music",
+    "rsvp"
+  ]
+}

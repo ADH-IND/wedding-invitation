@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "template-001",
+      "name": "Elegant Minimalist",
+      "version": "1.0.0",
+      "path": "templates/template-001/",
+      "manifest": "templates/template-001/template.json",
+      "preview": "templates/template-001/index.html",
+      "active": true
+    }
+  ]
+}

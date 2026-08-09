@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Undangan pernikahan" />
+    <title>Wedding Invitation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero__ornament hero__ornament--one"></div>
+        <div class="hero__ornament hero__ornament--two"></div>
+        <div class="hero__content">
+          <p class="eyebrow">The Wedding Of</p>
+          <h1>
+            <span id="groom-name"></span><i>&amp;</i
+            ><span id="bride-name"></span>
+          </h1>
+          <p class="hero__date" id="wedding-date-display"></p>
+          <div class="hero__guest">
+            <span>Kepada Yth.</span><strong id="guest-name"></strong>
+          </div>
+          <button
+            class="button button--primary"
+            id="open-invitation"
+            type="button"
+          >
+            Buka Undangan
+          </button>
+        </div>
+      </section>
+      <div id="invitation-content" hidden>
+        <section class="section opening reveal" id="opening">
+          <p class="section__eyebrow">Pembukaan</p>
+          <h2>Assalamu'alaikum Warahmatullahi Wabarakatuh</h2>
+          <p id="opening-text"></p>
+        </section>
+        <section class="section couple reveal" id="couple">
+          <p class="section__eyebrow">Mempelai</p>
+          <h2>Pasangan Berbahagia</h2>
+          <div class="couple__grid">
+            <article class="couple-card">
+              <img id="groom-photo" alt="Foto pengantin pria" />
+              <h3 id="groom-full-name"></h3>
+              <p>Putra pertama dari:</p>
+              <strong id="groom-father"></strong><span>&amp;</span
+              ><strong id="groom-mother"></strong>
+            </article>
+            <article class="couple-card">
+              <img id="bride-photo" alt="Foto pengantin wanita" />
+              <h3 id="bride-full-name"></h3>
+              <p>Putri pertama dari:</p>
+              <strong id="bride-father"></strong><span>&amp;</span
+              ><strong id="bride-mother"></strong>
+            </article>
+          </div>
+        </section>
+        <section class="section countdown reveal" id="countdown">
+          <p class="section__eyebrow">Menuju Hari Bahagia</p>
+          <h2>Save The Date</h2>
+          <div class="countdown__numbers" aria-live="polite">
+            <div><strong id="countdown-days">00</strong><span>Hari</span></div>
+            <div><strong id="countdown-hours">00</strong><span>Jam</span></div>
+            <div>
+              <strong id="countdown-minutes">00</strong><span>Menit</span>
+            </div>
+            <div>
+              <strong id="countdown-seconds">00</strong><span>Detik</span>
+            </div>
+          </div>
+          <p class="countdown__complete" hidden>Hari Bahagia Telah Tiba</p>
+        </section>
+        <section class="section event reveal" id="akad">
+          <p class="section__eyebrow">Rangkaian Acara</p>
+          <h2>Akad Nikah</h2>
+          <div class="event__detail">
+            <p id="akad-date"></p>
+            <p id="akad-time"></p>
+            <h3 id="akad-location"></h3>
+            <p id="akad-address"></p>
+            <a
+              class="button button--soft"
+              id="akad-maps"
+              target="_blank"
+              rel="noopener"
+              >Lihat Lokasi</a
+            >
+          </div>
+        </section>
+        <section class="section section--soft event reveal" id="reception">
+          <p class="section__eyebrow">Rangkaian Acara</p>
+          <h2>Resepsi</h2>
+          <div class="event__detail">
+            <p id="reception-date"></p>
+            <p id="reception-time"></p>
+            <h3 id="reception-location"></h3>
+            <p id="reception-address"></p>
+            <a
+              class="button button--soft"
+              id="reception-maps"
+              target="_blank"
+              rel="noopener"
+              >Lihat Lokasi</a
+            >
+          </div>
+        </section>
+        <section class="section digital-gift reveal" id="digital-gift" hidden>
+          <p class="section__eyebrow">Tanda Kasih</p>
+          <h2>Digital Gift</h2>
+          <p class="section__intro">
+            Doa restu Anda adalah hadiah terindah. Bagi yang berkenan mengirim
+            tanda kasih, dapat melalui rekening berikut.
+          </p>
+          <div class="digital-gift__list" id="bank-accounts"></div>
+        </section>
+        <section class="section section--soft rsvp reveal" id="rsvp">
+          <p class="section__eyebrow">Konfirmasi Kehadiran &amp; Ucapan</p>
+          <h2>RSVP</h2>
+          <form class="rsvp__form" id="rsvp-form" novalidate>
+            <label>Nama<input name="name" maxlength="100" required /></label
+            ><label
+              >Konfirmasi Kehadiran<select name="attendance" required>
+                <option value="" selected disabled>Pilih konfirmasi</option>
+                <option value="hadir">Hadir</option>
+                <option value="tidak_hadir">Tidak Hadir</option>
+              </select></label
+            ><label id="guest-count-field"
+              >Jumlah Tamu<input
+                type="number"
+                name="guest_count"
+                min="1"
+                value="1" /></label
+            ><label
+              >Ucapan &amp; Doa<textarea
+                name="message"
+                rows="4"
+                maxlength="500"
+                required
+              ></textarea></label
+            ><button class="button button--primary" type="submit">
+              Kirim Konfirmasi
+            </button>
+          </form>
+          <p class="rsvp__error" id="rsvp-error" aria-live="polite"></p>
+          <p class="rsvp__success" id="rsvp-success" aria-live="polite"></p>
+          <div class="rsvp__messages">
+            <div class="rsvp__messages-heading">
+              <h3>Ucapan &amp; Doa</h3>
+              <span class="rsvp__message-count" id="message-count"
+                >0 Ucapan</span
+              >
+            </div>
+            <div id="message-list"></div>
+            <div class="rsvp__empty" id="message-empty" hidden>
+              <p>Belum ada ucapan.</p>
+              <span
+                >Jadilah yang pertama memberikan ucapan dan doa untuk kedua
+                mempelai.</span
+              >
+            </div>
+          </div>
+        </section>
+        <section class="section closing reveal" id="closing">
+          <p id="closing-text"></p>
+          <h2>
+            <span data-couple-groom></span> <i>&amp;</i>
+            <span data-couple-bride></span>
+          </h2>
+        </section>
+        <footer class="footer">
+          <p>With Love</p>
+          <strong
+            ><span data-couple-groom></span> &amp;
+            <span data-couple-bride></span
+          ></strong>
+        </footer>
+      </div>
+    </main>
+    <button
+      class="music-control"
+      id="music-control"
+      type="button"
+      hidden
+      aria-label="Putar musik"
+    >
+      <span aria-hidden="true">♫</span></button
+    ><audio id="background-music" loop></audio>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Wedding Admin</title>
+    <link rel="stylesheet" href="css/admin.css" />
+  </head>
+  <body>
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><img class="brand-logo" src="assets/madiva-studio-logo.png" alt="Logo Madiva Studio" /><span class="brand-copy"><strong>Madiva Studio</strong><span>Wedding Admin</span></span><small>V1.4</small></a>
+        <nav id="primary-nav">
+          <a data-nav="dashboard" href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a
+          ><a data-nav="orders" href="index.html?page=orders"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l3 3v15H7z"/><path d="M10 11h5M10 15h5"/></svg>Pesanan</a
+          ><a data-nav="templates" href="index.html?page=templates"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg>Template</a>
+        </nav>
+        <button id="logout-button" class="link-button" type="button">Logout</button>
+      </aside>
+      <main class="admin-main">
+        <header class="admin-header">
+          <button id="mobile-menu" class="mobile-menu" type="button" aria-controls="primary-nav" aria-expanded="false">☰</button>
+          <div>
+            <p class="admin-eyebrow">Wedding Invitation</p>
+            <h1 id="page-title">Dashboard</h1>
+            <p id="page-subtitle" class="page-subtitle"></p>
+          </div>
+          <div class="backup-actions">
+            <button id="export-data" class="button-secondary" type="button">
+              Export Data</button
+            ><label class="button-secondary"
+              >Import Data<input
+                id="import-data"
+                type="file"
+                accept="application/json"
+                hidden
+            /></label>
+          </div>
+        </header>
+        <p id="app-message" class="app-message" aria-live="polite"></p>
+        <div id="app"></div>
+      </main>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/templates.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/sections.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
+</html>

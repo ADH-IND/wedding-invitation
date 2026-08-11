@@ -10,13 +10,14 @@
     <main class="login-card">
       <img class="login-logo" src="assets/madiva-studio-logo.png" alt="Logo Madiva Studio" />
       <p class="admin-eyebrow">Wedding Invitation</p>
-      <h1>Wedding Admin</h1>
+      <h1>Madiva Studio Admin</h1>
       <p>Masuk untuk mengelola undangan.</p>
       <form id="login-form" novalidate>
         <label
-          >Username<input
-            name="username"
-            autocomplete="username"
+          >Email<input
+            name="email"
+            type="email"
+            autocomplete="email"
             required /></label
         ><label
           >Password<input
@@ -29,6 +30,8 @@
         <button class="admin-button" type="submit">Masuk</button>
       </form>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
     <script src="js/auth.js"></script>
   </body>
 </html>

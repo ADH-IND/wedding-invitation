@@ -1,6 +1,9 @@
 /* global weddingData, rsvpData */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const $ = (selector) => document.querySelector(selector);
+  const inviteSlug = new URLSearchParams(window.location.search)
+    .get("invite")
+    ?.trim();
   const previewWedding = (() => {
     try {
       return JSON.parse(localStorage.getItem("wedding_admin_v1_preview"));
@@ -8,7 +11,18 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
   })();
-  const data = adaptWeddingForTemplate(previewWedding || weddingData);
+  const loadedWedding = await loadWeddingData(inviteSlug, previewWedding);
+  if (!loadedWedding) return;
+  let data;
+  try {
+    data = adaptWeddingForTemplate(loadedWedding);
+    $("#invitation-loading").hidden = true;
+    $("main").hidden = false;
+  } catch (error) {
+    console.error("Template data adapter failed:", error);
+    showLoadError("Data undangan tidak valid.");
+    return;
+  }
   const RSVP_STORAGE_KEY = data._wedding_id
     ? `wedding_rsvp_${data._wedding_id}`
     : "wedding_rsvp";
@@ -23,6 +37,53 @@ document.addEventListener("DOMContentLoaded", () => {
     const element = $(selector);
     if (element) element.textContent = value || "";
   };
+
+  async function loadWeddingData(slug, preview) {
+    if (!slug) return preview || weddingData;
+    const client = window.getSupabaseClient?.();
+    if (!client) {
+      showLoadError("Undangan belum dapat dimuat karena konfigurasi belum tersedia.");
+      return null;
+    }
+    try {
+      const { data: rows, error } = await client
+        .from("invitations")
+        .select("wedding_data, template_id, status")
+        .eq("slug", slug)
+        .eq("status", "published")
+        .limit(1);
+      if (error) throw error;
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row) {
+        showLoadError("Undangan tidak ditemukan.");
+        return null;
+      }
+      const weddingData = row.wedding_data;
+      if (!weddingData || typeof weddingData !== "object" || Array.isArray(weddingData)) {
+        showLoadError("Data undangan tidak valid.");
+        return null;
+      }
+      window.WEDDING_DATA = weddingData;
+      return {
+        ...weddingData,
+        slug,
+        template_id: row.template_id,
+        status: row.status,
+      };
+    } catch (error) {
+      showLoadError(
+        "Undangan tidak dapat dimuat. Periksa koneksi internet dan coba lagi.",
+      );
+      return null;
+    }
+  }
+
+  function showLoadError(text) {
+    $("#invitation-loading").hidden = true;
+    const error = $("#invitation-error");
+    error.textContent = text;
+    error.hidden = false;
+  }
 
   // Adapter sementara: menjaga desain Template #1 tetap mandiri dari schema Admin V1.
   function adaptWeddingForTemplate(wedding) {
@@ -46,6 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
       address: item?.address || "",
       maps_url: item?.maps_url || "",
     });
+    const customEvents = Array.isArray(event.custom_events)
+      ? event.custom_events
+      : [];
     return {
       _wedding_id: wedding.id,
       groom_name: wedding.couple?.groom?.name || "",
@@ -58,8 +122,12 @@ document.addEventListener("DOMContentLoaded", () => {
       couple_photo: wedding.couple?.couple_photo || "",
       groom_father: wedding.couple?.groom?.father || "",
       groom_mother: wedding.couple?.groom?.mother || "",
+      groom_child_order:
+        wedding.couple?.groom?.childOrder || wedding.couple?.groom?.child_order || "",
       bride_father: wedding.couple?.bride?.father || "",
       bride_mother: wedding.couple?.bride?.mother || "",
+      bride_child_order:
+        wedding.couple?.bride?.childOrder || wedding.couple?.bride?.child_order || "",
       wedding_date_display: formatDate(target?.date),
       countdown_target:
         target?.date && target?.start_time
@@ -67,6 +135,11 @@ document.addEventListener("DOMContentLoaded", () => {
           : "",
       akad: mapEvent(event.akad),
       reception: mapEvent(event.reception),
+      custom_events: customEvents.map((item) => ({
+        ...mapEvent(item),
+        title: item?.title || "",
+        position: item?.position === "before" ? "before" : "after",
+      })),
       bank_accounts: wedding.digital_gift?.enabled
         ? (wedding.digital_gift.accounts || []).map((account) => ({
             bank_name: account.bank,
@@ -81,6 +154,25 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  function childOrderText(value) {
+    const order = Number(value);
+    const ordinals = {
+      1: "pertama",
+      2: "kedua",
+      3: "ketiga",
+      4: "keempat",
+      5: "kelima",
+      6: "keenam",
+      7: "ketujuh",
+      8: "kedelapan",
+      9: "kesembilan",
+      10: "kesepuluh",
+    };
+    return Number.isInteger(order) && order > 0
+      ? ordinals[order] || `ke-${order}`
+      : "";
+  }
+
   function getGuestNameFromUrl() {
     const name = new URLSearchParams(window.location.search).get("to")?.trim();
     return name || "Tamu Undangan";
@@ -92,9 +184,19 @@ document.addEventListener("DOMContentLoaded", () => {
     setText("#groom-full-name", data.groom_full_name);
     setText("#groom-father", data.groom_father);
     setText("#groom-mother", data.groom_mother);
+    const groomOrder = childOrderText(data.groom_child_order);
+    setText(
+      "#groom-child-order-label",
+      groomOrder ? `Putra ${groomOrder} dari:` : "Putra dari:",
+    );
     setText("#bride-full-name", data.bride_full_name);
     setText("#bride-father", data.bride_father);
     setText("#bride-mother", data.bride_mother);
+    const brideOrder = childOrderText(data.bride_child_order);
+    setText(
+      "#bride-child-order-label",
+      brideOrder ? `Putri ${brideOrder} dari:` : "Putri dari:",
+    );
     setText("#opening-text", data.opening_text || fallback.opening);
     setText("#closing-text", data.closing_text || fallback.closing);
     document.querySelectorAll("[data-couple-groom]").forEach((element) => {
@@ -131,6 +233,65 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderEvents() {
     renderEvent("akad", data.akad);
     renderEvent("reception", data.reception);
+    const hasAkad = data.akad.enabled;
+    const hasReception = data.reception.enabled;
+    $("#events").hidden = !hasAkad && !hasReception;
+    $("#main-events").hidden = !hasAkad && !hasReception;
+    $("#event-divider").hidden = !hasAkad || !hasReception;
+  }
+  function createCustomEvent(eventData) {
+    if (!eventData?.enabled || !eventData.title?.trim()) return null;
+    const card = document.createElement("article");
+    card.className = "event-card custom-event";
+    const title = document.createElement("h2");
+    title.textContent = eventData.title;
+    const detail = document.createElement("div");
+    detail.className = "event__detail";
+    [eventData.date, eventData.time].filter(Boolean).forEach((value) => {
+      const line = document.createElement("p");
+      line.textContent = value;
+      detail.append(line);
+    });
+    if (eventData.location) {
+      const location = document.createElement("h3");
+      location.textContent = eventData.location;
+      detail.append(location);
+    }
+    if (eventData.address) {
+      const address = document.createElement("p");
+      address.textContent = eventData.address;
+      detail.append(address);
+    }
+    if (eventData.maps_url) {
+      const maps = document.createElement("a");
+      maps.className = "button button--soft";
+      maps.href = eventData.maps_url;
+      maps.target = "_blank";
+      maps.rel = "noopener";
+      maps.textContent = "Lihat Lokasi";
+      detail.append(maps);
+    }
+    card.append(title, detail);
+    return card;
+  }
+  function renderCustomEvents() {
+    const before = $("#template-custom-events-before");
+    const after = $("#template-custom-events-after");
+    before.replaceChildren();
+    after.replaceChildren();
+    const events = Array.isArray(data.custom_events) ? data.custom_events : [];
+    events
+      .filter((event) => event.position === "before")
+      .forEach((event) => {
+        const card = createCustomEvent(event);
+        if (card) before.append(card);
+      });
+    events
+      .filter((event) => event.position !== "before")
+      .forEach((event) => {
+        const card = createCustomEvent(event);
+        if (card) after.append(card);
+      });
   }
   function showToast(message) {
     const toast = $("#toast");
@@ -357,14 +518,21 @@ document.addEventListener("DOMContentLoaded", () => {
       .querySelectorAll(".reveal")
       .forEach((element) => observer.observe(element));
   }
-  renderWeddingData();
-  renderGuest();
-  renderEvents();
-  renderBankAccounts();
-  renderCountdown();
-  rsvpState = loadRSVPData();
-  renderPublicMessages();
-  initRSVP();
-  initMusic();
-  initInvitation();
+  try {
+    renderWeddingData();
+    renderGuest();
+    renderEvents();
+    renderCustomEvents();
+    renderBankAccounts();
+    renderCountdown();
+    rsvpState = loadRSVPData();
+    renderPublicMessages();
+    initRSVP();
+    initMusic();
+    initInvitation();
+  } catch (error) {
+    console.error("Template render failed:", error);
+    $("main").hidden = true;
+    showLoadError("Undangan gagal dimuat. Silakan coba lagi.");
+  }
 });

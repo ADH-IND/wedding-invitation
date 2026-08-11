@@ -1,11 +1,67 @@
 const AdminAuth = (() => {
-  const SESSION_KEY = "wedding_admin_v1_session";
-  // Development-only credentials. Replace with secure server authentication for production.
-  const credentials = { username: "admin", password: "ubah-admin-123" };
-  const isLoggedIn = () => localStorage.getItem(SESSION_KEY) === "active";
-  const requireAuth = () => { if (!isLoggedIn() && !location.pathname.endsWith("login.html")) location.replace("login.html"); };
-  const logout = () => { localStorage.removeItem(SESSION_KEY); location.replace("login.html"); };
-  if (!location.pathname.endsWith("login.html")) requireAuth();
-  document.addEventListener("DOMContentLoaded", () => { const form = document.querySelector("#login-form"); if (!form) return; if (isLoggedIn()) location.replace("index.html"); form.addEventListener("submit", (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(form)); if (values.username === credentials.username && values.password === credentials.password) { localStorage.setItem(SESSION_KEY, "active"); location.replace("index.html"); } else document.querySelector("#login-error").textContent = "Username atau password tidak sesuai."; }); });
-  return { logout, isLoggedIn };
+  let user = null;
+  const isLoginPage = () => location.pathname.endsWith("login.html");
+  const afterDomReady = (callback) => {
+    if (document.readyState === "loading")
+      document.addEventListener("DOMContentLoaded", callback, { once: true });
+    else callback();
+  };
+  const setError = (text) => {
+    const error = document.querySelector("#login-error");
+    if (error) error.textContent = text;
+  };
+  const ready = (async () => {
+    const supabase = window.getSupabaseClient?.();
+    if (!supabase) {
+      if (!isLoginPage()) location.replace("login.html");
+      else
+        afterDomReady(() =>
+          setError("Supabase belum dikonfigurasi. Isi config/supabase.js terlebih dahulu."),
+        );
+      return null;
+    }
+    try {
+      const { data } = await supabase.auth.getSession();
+      user = data.session?.user || null;
+      if (!user && !isLoginPage()) location.replace("login.html");
+      if (user && !isLoginPage())
+        afterDomReady(() => {
+          document.querySelector(".admin-shell").hidden = false;
+        });
+      return user;
+    } catch {
+      if (!isLoginPage()) location.replace("login.html");
+      else afterDomReady(() => setError("Sesi tidak dapat diperiksa. Coba muat ulang halaman."));
+      return null;
+    }
+  })();
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("#login-form");
+    if (!form) return;
+    ready.then((sessionUser) => {
+      if (sessionUser) location.replace("index.html");
+    });
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setError("");
+      const supabase = window.getSupabaseClient?.();
+      if (!supabase)
+        return setError("Supabase belum dikonfigurasi. Isi config/supabase.js terlebih dahulu.");
+      const values = Object.fromEntries(new FormData(form));
+      const { error } = await supabase.auth.signInWithPassword({
+        email: String(values.email || "").trim(),
+        password: values.password,
+      });
+      if (error) return setError("Email atau password tidak valid.");
+      location.replace("index.html");
+    });
+  });
+
+  const logout = async () => {
+    const supabase = window.getSupabaseClient?.();
+    if (supabase) await supabase.auth.signOut();
+    location.replace("login.html");
+  };
+  return { ready, logout, isLoggedIn: () => Boolean(user), getUser: () => user };
 })();

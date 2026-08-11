@@ -15,7 +15,9 @@
   </head>
 
   <body>
-    <main>
+    <div class="invitation-state" id="invitation-loading" role="status">Memuat undangan...</div>
+    <div class="invitation-state" id="invitation-error" role="alert" hidden></div>
+    <main hidden>
       <section class="hero" id="hero">
         <div class="hero__ornament hero__ornament--one"></div>
         <div class="hero__ornament hero__ornament--two"></div>
@@ -51,14 +53,14 @@
             <article class="couple-card">
               <img id="groom-photo" alt="Foto pengantin pria" />
               <h3 id="groom-full-name"></h3>
-              <p>Putra pertama dari:</p>
+              <p id="groom-child-order-label">Putra dari:</p>
               <strong id="groom-father"></strong><span>&amp;</span
               ><strong id="groom-mother"></strong>
             </article>
             <article class="couple-card">
               <img id="bride-photo" alt="Foto pengantin wanita" />
               <h3 id="bride-full-name"></h3>
-              <p>Putri pertama dari:</p>
+              <p id="bride-child-order-label">Putri dari:</p>
               <strong id="bride-father"></strong><span>&amp;</span
               ><strong id="bride-mother"></strong>
             </article>
@@ -79,38 +81,46 @@
           </div>
           <p class="countdown__complete" hidden>Hari Bahagia Telah Tiba</p>
         </section>
-        <section class="section event reveal" id="akad">
+        <section class="section event-series reveal" id="events">
           <p class="section__eyebrow">Rangkaian Acara</p>
-          <h2>Akad Nikah</h2>
-          <div class="event__detail">
-            <p id="akad-date"></p>
-            <p id="akad-time"></p>
-            <h3 id="akad-location"></h3>
-            <p id="akad-address"></p>
-            <a
-              class="button button--soft"
-              id="akad-maps"
-              target="_blank"
-              rel="noopener"
-              >Lihat Lokasi</a
-            >
-          </div>
-        </section>
-        <section class="section section--soft event reveal" id="reception">
-          <p class="section__eyebrow">Rangkaian Acara</p>
-          <h2>Resepsi</h2>
-          <div class="event__detail">
-            <p id="reception-date"></p>
-            <p id="reception-time"></p>
-            <h3 id="reception-location"></h3>
-            <p id="reception-address"></p>
-            <a
-              class="button button--soft"
-              id="reception-maps"
-              target="_blank"
-              rel="noopener"
-              >Lihat Lokasi</a
-            >
+          <div class="event-series__content">
+            <div class="event-list" id="template-custom-events-before"></div>
+            <div class="main-events" id="main-events">
+              <article class="event-card" id="akad">
+                <h2>Akad Nikah</h2>
+                <div class="event__detail">
+                  <p id="akad-date"></p>
+                  <p id="akad-time"></p>
+                  <h3 id="akad-location"></h3>
+                  <p id="akad-address"></p>
+                  <a
+                    class="button button--soft"
+                    id="akad-maps"
+                    target="_blank"
+                    rel="noopener"
+                    >Lihat Lokasi</a
+                  >
+                </div>
+              </article>
+              <div class="event-divider" id="event-divider" aria-hidden="true"></div>
+              <article class="event-card" id="reception">
+                <h2>Resepsi</h2>
+                <div class="event__detail">
+                  <p id="reception-date"></p>
+                  <p id="reception-time"></p>
+                  <h3 id="reception-location"></h3>
+                  <p id="reception-address"></p>
+                  <a
+                    class="button button--soft"
+                    id="reception-maps"
+                    target="_blank"
+                    rel="noopener"
+                    >Lihat Lokasi</a
+                  >
+                </div>
+              </article>
+            </div>
+            <div class="event-list" id="template-custom-events-after"></div>
           </div>
         </section>
         <section class="section digital-gift reveal" id="digital-gift" hidden>
@@ -195,6 +205,8 @@
       <span aria-hidden="true">♫</span></button
     ><audio id="background-music" loop></audio>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../config/supabase.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
   </body>

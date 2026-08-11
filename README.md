@@ -1,6 +1,8 @@
 # Wedding Invitation — Web Admin V1.4
 
-Web Admin V1.4 adalah **prototype/development** untuk mengelola undangan pernikahan berbasis template. Data disimpan di `localStorage` dan login lokal hanya digunakan untuk pengembangan; proyek ini belum production-ready dan belum memiliki backend, database, atau authentication yang aman.
+Web Admin Madiva Studio mengelola undangan berbasis template. Data undangan yang disimpan/published memakai Supabase Database dan Supabase Auth, sedangkan Preview, RSVP sementara, dan cache editor tetap memakai `localStorage`.
+
+> Konfigurasi Supabase dan panduan publish tersedia di [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
 ## Struktur proyek
 
@@ -63,15 +65,15 @@ Template membaca query parameter `?to=`. Contoh: `index.html?to=Andi%20Saputra` 
 
 ## Link undangan dan preview
 
-Wedding Draft belum memiliki Link Undangan Aktif. Wedding Active menampilkan Base Invitation Link dari `AdminConfig.publicInvitationBaseUrl` ditambah `wedding.slug`. Nilai `https://undangan.example.com` saat ini adalah placeholder development, bukan domain production-ready.
+Wedding Draft belum memiliki link publik. Wedding berstatus Published menampilkan URL dari `SupabaseConfig.publicInvitationUrl(slug)`, misalnya `templates/template-001/?invite=adhiim-nabila`. Atur `PUBLIC_BASE_URL` di `config/supabase.js` untuk production.
 
-**Preview** menyimpan wedding pada `wedding_admin_v1_preview` lalu membuka file template lokal. **Buka Undangan** membuka Public Base URL. Keduanya berbeda.
+**Preview** menyimpan wedding pada `wedding_admin_v1_preview` lalu membuka file template lokal. **Buka Undangan** mengambil data published dari Supabase menggunakan parameter `invite`. Keduanya berbeda.
 
 Web Generator belum dibuat. Workflow berikutnya adalah Admin menyediakan Base Link aktif, lalu customer memasukkan Base Link dan nama tamu ke generator publik. Misalnya Base Link `https://domain.com/budi-ani` dan nama `Andi Saputra` nantinya menghasilkan `https://domain.com/budi-ani?to=Andi%20Saputra`; generator juga akan menangani Chat Template.
 
 ## Backup dan login
 
-Export/Import adalah backup manual selama data menggunakan `localStorage`. Export membuat `wedding-admin-v1-backup.json`; Import mengembalikan state storage V1. Login saat ini hanya authentication prototype development dan belum aman untuk production.
+Export/Import adalah backup cache lokal. Login Admin memakai email/password Supabase Auth; lihat [SUPABASE_SETUP.md](SUPABASE_SETUP.md) untuk membuat akun admin pertama.
 
 ## Web Generator Link V1
 

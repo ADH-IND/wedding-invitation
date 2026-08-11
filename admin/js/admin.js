@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  await AdminAuth.ready;
+  if (!AdminAuth.isLoggedIn()) return;
   const $ = (selector) => document.querySelector(selector);
   const app = $("#app");
   const query = new URLSearchParams(location.search);
@@ -26,8 +28,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function statusBadge(status) {
-    return status === "active"
-      ? '<span class="status active">Aktif</span>'
+    return status === "published"
+      ? '<span class="status active">Published</span>'
       : '<span class="status">Draft</span>';
   }
 
@@ -56,10 +58,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     await TemplateRegistry.load();
+    const weddings = await InvitationRepository.list();
+    AdminStorage.update((store) => {
+      store.weddings = weddings;
+    });
   } catch (error) {
-    message(error.message);
+    message(`Tidak dapat memuat data Supabase: ${error.message || "silakan coba lagi."}`);
     return;
   }
+
+  if (query.get("saved") === "published")
+    toast("Undangan berhasil dipublikasikan.");
+  if (query.get("saved") === "draft") toast("Draft berhasil disimpan.");
 
   $("#logout-button").onclick = AdminAuth.logout;
   $("#mobile-menu").onclick = () => {
@@ -97,7 +107,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#page-title").textContent = "Dashboard";
     app.innerHTML = `<section class="stats" aria-label="Statistik pesanan">
       <article class="card stat stat--total"><span class="stat-icon" aria-hidden="true">▦</span><span class="stat-label">Total Pesanan</span><strong>${weddings.length}</strong><span class="stat-note">Semua pesanan</span></article>
-      <article class="card stat stat--active"><span class="stat-icon" aria-hidden="true">✓</span><span class="stat-label">Aktif</span><strong>${weddings.filter((wedding) => wedding.status === "active").length}</strong><span class="stat-note">Undangan aktif</span></article>
+      <article class="card stat stat--active"><span class="stat-icon" aria-hidden="true">✓</span><span class="stat-label">Published</span><strong>${weddings.filter((wedding) => wedding.status === "published").length}</strong><span class="stat-note">Undangan publik</span></article>
       <article class="card stat stat--draft"><span class="stat-icon" aria-hidden="true">◌</span><span class="stat-label">Draft</span><strong>${weddings.filter((wedding) => wedding.status === "draft").length}</strong><span class="stat-note">Belum dipublikasikan</span></article>
     </section>
     <section class="card dashboard-orders"><div class="list-title"><div><h2>Pesanan Terbaru</h2><p>Pesanan yang terakhir diperbarui.</p></div><div class="list-actions"><a class="text-link" href="index.html?page=orders">Lihat semua</a><a class="admin-button" href="index.html?page=edit">+ Pesanan Baru</a></div></div>${rows(latest, { allowDelete: false })}</section>`;
@@ -109,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#page-title").textContent = "Pesanan";
     app.innerHTML = `<section class="card"><div class="list-title"><h2>Daftar Pesanan</h2><a class="admin-button" href="index.html?page=edit">+ Pesanan Baru</a></div>
       <div class="orders-toolbar"><label for="order-search">Cari nama pengantin<input id="order-search" type="search" placeholder="Cari nama pengantin..." aria-label="Cari nama pengantin" /></label>
-      <label for="order-status-filter">Filter status pesanan<select id="order-status-filter" aria-label="Filter status pesanan"><option value="">Semua Status</option><option value="draft">Draft</option><option value="active">Aktif</option></select></label></div>
+      <label for="order-status-filter">Filter status pesanan<select id="order-status-filter" aria-label="Filter status pesanan"><option value="">Semua Status</option><option value="draft">Draft</option><option value="published">Published</option></select></label></div>
       <div id="order-list"></div></section>`;
     const searchInput = $("#order-search");
     const statusFilter = $("#order-status-filter");
@@ -154,11 +164,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return {
       id: AdminUtils.id("WDG"), slug: "", template_id: template.id, status: "draft",
       cover: { photo: "" },
-      couple: { couple_photo: "", groom: { name: "", full_name: "", photo: "", father: "", mother: "" }, bride: { name: "", full_name: "", photo: "", father: "", mother: "" } },
+      couple: { couple_photo: "", groom: { name: "", full_name: "", photo: "", childOrder: "", father: "", mother: "" }, bride: { name: "", full_name: "", photo: "", childOrder: "", father: "", mother: "" } },
       event: {
         akad: { enabled: true, date: "", start_time: "", end_time: "", location: "", address: "", maps_url: "" },
         reception: { enabled: true, date: "", start_time: "", end_time: "", location: "", address: "", maps_url: "" },
-        countdown_target: "akad"
+        countdown_target: "akad", custom_events: []
       },
       digital_gift: { enabled: false, accounts: [] },
       music: { enabled: false, url: "", autoplay: false },
@@ -186,10 +196,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     app.innerHTML = `<form id="order-form">
       <section class="form-section"><h2>Template</h2><select name="template_id">${choices}</select><p id="section-list"></p></section>
       <div id="section-editors"></div>
+      <section class="form-section publish-section"><h2>Publish Undangan</h2><label>Slug / Link Undangan<input name="slug" value="${escape(workingWedding.slug || AdminUtils.slugify(`${workingWedding.couple.groom.name}-${workingWedding.couple.bride.name}`))}" placeholder="adhiim-nabila" autocomplete="off" required /></label><p class="link-note">Gunakan huruf kecil, angka, dan tanda hubung. Slug dapat diedit sebelum disimpan.</p><p>Status: <span class="status ${workingWedding.status === "published" ? "active" : ""}">${workingWedding.status === "published" ? "Published" : "Draft"}</span></p></section>
       <p id="order-error" class="form-error"></p>
       ${old ? '<button id="preview-current" type="button">Preview</button>' : ""}
       <button name="action" value="draft">Simpan Draft</button>
-      <button name="action" value="active">Simpan & Aktifkan</button>
+      <button name="action" value="published">Publish Undangan</button>
     </form><section id="order-details"><div id="rsvp-details"></div><div id="link-details"></div></section>`;
 
     const form = $("#order-form");
@@ -221,7 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderOrderDetails();
     };
 
-    form.onsubmit = (event) => {
+    form.onsubmit = async (event) => {
       event.preventDefault();
       const sections = TemplateRegistry.getTemplateSections(workingWedding.template_id);
       const error = AdminSections.validate(form, sections);
@@ -232,25 +243,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       wedding.template_id = workingWedding.template_id;
       wedding.status = event.submitter?.value || "draft";
       wedding.updated_at = new Date().toISOString();
-      wedding.slug = sections.includes("couple")
-        ? slug(`${wedding.couple.groom.name}-${wedding.couple.bride.name}`, wedding.id)
-        : (wedding.slug || `wedding-${wedding.id}`);
-
-      AdminStorage.update((store) => {
-        if (old) store.weddings = store.weddings.map((item) => item.id === wedding.id ? wedding : item);
-        else store.weddings.push(wedding);
-      });
-      location.assign(`index.html?page=edit&id=${wedding.id}`);
+      wedding.slug = AdminUtils.slugify(form.elements.slug.value) || "";
+      if (!wedding.slug) {
+        $("#order-error").textContent = "Slug / Link Undangan wajib diisi.";
+        return;
+      }
+      try {
+        const available = await InvitationRepository.slugAvailable(
+          wedding.slug,
+          /^[0-9a-f-]{36}$/i.test(String(wedding.id || "")) ? wedding.id : null,
+        );
+        if (!available) {
+          $("#order-error").textContent =
+            "Link undangan sudah digunakan. Silakan gunakan nama lain.";
+          return;
+        }
+        const saved = await InvitationRepository.save(wedding, wedding.status);
+        AdminStorage.update((store) => {
+          store.weddings = [
+            ...store.weddings.filter((item) => item.id !== saved.id),
+            saved,
+          ];
+        });
+        toast(
+          saved.status === "published"
+            ? "Undangan berhasil dipublikasikan."
+            : "Draft berhasil disimpan.",
+        );
+        location.assign(
+          `index.html?page=edit&id=${saved.id}&saved=${saved.status}`,
+        );
+      } catch (saveError) {
+        $("#order-error").textContent =
+          saveError.message || "Gagal menyimpan undangan. Silakan coba lagi.";
+      }
     };
-  }
-
-  function slug(text, id) {
-    const base = AdminUtils.slugify(text) || "wedding";
-    const used = data().weddings.filter((wedding) => wedding.id !== id).map((wedding) => wedding.slug);
-    let result = base;
-    let number = 2;
-    while (used.includes(result)) result = `${base}-${number++}`;
-    return result;
   }
 
   function rsvp(wedding) {
@@ -281,11 +308,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function link(wedding) {
     const container = $("#link-details");
-    if (wedding.status !== "active") {
+    if (wedding.status !== "published") {
       container.innerHTML = '<section class="card invitation-link-card"><h2>Undangan</h2><p>Status: <span class="status">Draft</span></p><p>Undangan belum aktif.</p></section>';
     } else {
-      const url = `${AdminConfig.publicInvitationBaseUrl.replace(/\/$/, "")}/${wedding.slug}`;
-      container.innerHTML = `<section class="card invitation-link-card"><h2>Link Undangan Aktif</h2><p class="base-link">${escape(url)}</p><div class="link-actions"><button type="button" class="button-secondary copy-invitation-link">Salin Link</button><button type="button" class="admin-button open-invitation-link">Buka Undangan</button></div><p class="link-note">Gunakan link ini pada Web Generator untuk membuat undangan personal bagi setiap tamu.</p></section>`;
+      const url = AdminConfig.publicInvitationUrl(wedding.slug);
+      container.innerHTML = `<section class="card invitation-link-card"><h2>Link Undangan Publik</h2><p class="base-link">${escape(url)}</p><div class="link-actions"><button type="button" class="button-secondary copy-invitation-link">Salin Link</button><button type="button" class="admin-button open-invitation-link">Buka Undangan</button></div><p class="link-note">Gunakan link ini pada Web Generator untuk membuat undangan personal bagi setiap tamu.</p></section>`;
       container.querySelector(".copy-invitation-link").onclick = async () => {
         try {
           await navigator.clipboard.writeText(url);
@@ -309,13 +336,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.open(`../${template.preview}`, "_blank");
   }
 
-  function remove(id) {
+  async function remove(id) {
     if (!confirm("Hapus pesanan beserta RSVP-nya?")) return;
-    AdminStorage.update((store) => {
-      store.weddings = store.weddings.filter((wedding) => wedding.id !== id);
-      store.rsvps = store.rsvps.filter((item) => item.wedding_id !== id);
-    });
-    location.assign("index.html?page=orders");
+    try {
+      await InvitationRepository.remove(id);
+      AdminStorage.update((store) => {
+        store.weddings = store.weddings.filter((wedding) => wedding.id !== id);
+        store.rsvps = store.rsvps.filter((item) => item.wedding_id !== id);
+      });
+      location.assign("index.html?page=orders");
+    } catch (removeError) {
+      toast(removeError.message || "Gagal menghapus undangan.", "error");
+    }
   }
 
   function exportData() {

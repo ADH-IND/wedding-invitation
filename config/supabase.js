@@ -6,7 +6,7 @@ const SUPABASE_URL = "https://lstkebidnurxsfrbkpww.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_rn6gZMMUUUhC9G-eVD54HQ_OkjQZ2xV";
 
 /* Kosongkan untuk memakai path template saat ini; isi saat memakai domain produksi. */
-const PUBLIC_BASE_URL = "";
+const PUBLIC_BASE_URL = "https://adh-ind.github.io/wedding-invitation/templates/template-001/";
 
 window.SupabaseConfig = {
   url: SUPABASE_URL,

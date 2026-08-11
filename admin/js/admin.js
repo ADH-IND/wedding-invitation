@@ -58,9 +58,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     await TemplateRegistry.load();
-    const weddings = await InvitationRepository.list();
+    const [weddings, rsvps] = await Promise.all([
+      InvitationRepository.list(),
+      RsvpRepository.list(),
+    ]);
     AdminStorage.update((store) => {
       store.weddings = weddings;
+      store.rsvps = rsvps;
     });
   } catch (error) {
     message(`Tidak dapat memuat data Supabase: ${error.message || "silakan coba lagi."}`);

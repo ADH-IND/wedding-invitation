@@ -26,6 +26,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const RSVP_STORAGE_KEY = data._wedding_id
     ? `wedding_rsvp_${data._wedding_id}`
     : "wedding_rsvp";
+  const isOnlineInvitation = Boolean(
+    inviteSlug && data._wedding_id && loadedWedding.status === "published",
+  );
   let rsvpState = [];
   let backgroundMusic = null;
   const fallback = {
@@ -49,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const { data: rows, error } = await client
         .from("invitations")
-        .select("wedding_data, template_id, status")
+        .select("id, wedding_data, template_id, status")
         .eq("slug", slug)
         .eq("status", "published")
         .limit(1);
@@ -67,6 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.WEDDING_DATA = weddingData;
       return {
         ...weddingData,
+        id: row.id,
         slug,
         template_id: row.template_id,
         status: row.status,
@@ -369,7 +373,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         .map((item) => ({ ...item }));
     }
   }
-  // localStorage hanya untuk prototype. Pada tahap Web Admin/backend, ini diganti API/database.
+  async function loadOnlineRSVPMessages() {
+    const client = window.getSupabaseClient?.();
+    if (!client) throw new Error("Supabase client tidak tersedia.");
+    const { data: messages, error } = await client.rpc(
+      "get_public_rsvp_messages",
+      { p_wedding_id: data._wedding_id },
+    );
+    if (error) throw error;
+    return messages || [];
+  }
+  async function getInitialRSVPData() {
+    if (!isOnlineInvitation) return loadRSVPData();
+    try {
+      return await loadOnlineRSVPMessages();
+    } catch (error) {
+      console.error("Public RSVP messages failed:", error);
+      setText(
+        "#rsvp-error",
+        "Ucapan belum dapat dimuat. Periksa koneksi dan coba lagi.",
+      );
+      return [];
+    }
+  }
+  // localStorage dipertahankan khusus untuk preview lokal tanpa ?invite=.
   function saveRSVPData() {
     localStorage.setItem(RSVP_STORAGE_KEY, JSON.stringify(rsvpState));
     // Adapter V1: Admin dapat membaca RSVP dengan schema terisolasi per wedding.
@@ -428,7 +455,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (values.message.length > 500) return "Ucapan maksimal 500 karakter.";
     return "";
   }
-  function submitRSVP(form) {
+  async function submitRSVP(form) {
     const values = {
       guest_name: form.elements.name.value.trim(),
       attendance: form.elements.attendance.value,
@@ -446,8 +473,44 @@ document.addEventListener("DOMContentLoaded", async () => {
       guest_count: values.attendance === "hadir" ? values.guest_count : 0,
       created_at: new Date().toISOString(),
     };
-    rsvpState.push(entry);
-    saveRSVPData();
+    if (isOnlineInvitation) {
+      const client = window.getSupabaseClient?.();
+      if (!client) {
+        setText(
+          "#rsvp-error",
+          "RSVP belum berhasil dikirim. Periksa koneksi dan coba lagi.",
+        );
+        return false;
+      }
+      const { error: insertError } = await client.from("rsvps").insert({
+        wedding_id: data._wedding_id,
+        guest_name: entry.guest_name,
+        attendance: entry.attendance,
+        guest_count: entry.guest_count,
+        message: entry.message,
+      });
+      if (insertError) {
+        console.error("Public RSVP submit failed:", insertError);
+        setText(
+          "#rsvp-error",
+          "RSVP belum berhasil dikirim. Periksa koneksi dan coba lagi.",
+        );
+        return false;
+      }
+      try {
+        rsvpState = await loadOnlineRSVPMessages();
+      } catch (messageError) {
+        console.error("Public RSVP messages reload failed:", messageError);
+        setText(
+          "#rsvp-error",
+          "RSVP terkirim, tetapi ucapan belum dapat dimuat ulang. Silakan refresh halaman.",
+        );
+        return false;
+      }
+    } else {
+      rsvpState.push(entry);
+      saveRSVPData();
+    }
     renderPublicMessages();
     setText(
       "#rsvp-success",
@@ -472,14 +535,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     attendance.addEventListener("change", toggleGuestCount);
     toggleGuestCount();
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = form.querySelector('[type="submit"]');
+      if (button.disabled) return;
       button.disabled = true;
-      submitRSVP(form);
-      window.setTimeout(() => {
+      try {
+        await submitRSVP(form);
+      } finally {
         button.disabled = false;
-      }, 250);
+      }
     });
   }
   function initMusic() {
@@ -546,7 +611,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderCustomEvents();
     renderBankAccounts();
     renderCountdown();
-    rsvpState = loadRSVPData();
+    rsvpState = await getInitialRSVPData();
     renderPublicMessages();
     initRSVP();
     initMusic();

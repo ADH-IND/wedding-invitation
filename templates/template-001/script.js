@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ? `wedding_rsvp_${data._wedding_id}`
     : "wedding_rsvp";
   let rsvpState = [];
+  let backgroundMusic = null;
   const fallback = {
     opening:
       "Dengan memohon rahmat dan ridho Allah SWT, kami mengundang Bapak/Ibu/Saudara/i untuk hadir dan memberikan doa restu pada hari bahagia kami.",
@@ -484,8 +485,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   function initMusic() {
     if (!data.music_url) return;
     const music = $("#background-music");
+    backgroundMusic = music;
     const control = $("#music-control");
     music.src = data.music_url;
+    music.loop = true;
     control.hidden = false;
     control.addEventListener("click", () => {
       if (music.paused)
@@ -500,10 +503,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       control.classList.remove("is-playing");
       control.setAttribute("aria-label", "Putar musik");
     });
-    if (data.music_autoplay) music.play().catch(() => {});
   }
   function initInvitation() {
     $("#open-invitation").addEventListener("click", () => {
+      const audio = backgroundMusic;
+      if (data.music_autoplay && data.music_url && audio) {
+        console.log("OPEN CLICK", {
+          enabled: Boolean(data.music_url),
+          autoplay: data.music_autoplay,
+          url: data.music_url,
+          pausedBefore: audio.paused,
+        });
+        audio
+          .play()
+          .then(() => console.log("PLAY SUCCESS", audio.paused))
+          .catch((error) => console.error("PLAY FAILED", error));
+        window.setTimeout(() => {
+          console.log("500ms after open", {
+            paused: audio.paused,
+            currentTime: audio.currentTime,
+          });
+        }, 500);
+      }
       $("#invitation-content").hidden = false;
       $("#opening").scrollIntoView({ behavior: "smooth" });
     });

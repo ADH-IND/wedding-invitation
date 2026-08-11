@@ -1,6 +1,6 @@
 # Wedding Invitation — Web Admin V1.4
 
-Web Admin Madiva Studio mengelola undangan berbasis template. Data undangan yang disimpan/published memakai Supabase Database dan Supabase Auth, sedangkan Preview, RSVP sementara, dan cache editor tetap memakai `localStorage`.
+Web Admin Madiva Studio mengelola undangan berbasis template. Data undangan memakai Supabase Database dan Supabase Auth; musik MP3 memakai Supabase Storage. Preview, RSVP sementara, dan cache editor tetap memakai `localStorage`.
 
 > Konfigurasi Supabase dan panduan publish tersedia di [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 

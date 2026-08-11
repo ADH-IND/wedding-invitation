@@ -4,7 +4,21 @@ window.AdminSections = (() => {
     `<label>${label}<input type="${type}" name="${name}" value="${String(value || "").replace(/"/g, "&quot;")}"></label>`;
   const childOrderField = (name, value = "") =>
     `<label>Anak ke<input type="number" name="${name}" min="1" step="1" value="${String(value || "").replace(/"/g, "&quot;")}"></label>`;
-  const photo = (label, name, value) =>
+  const MAX_MUSIC_FILE_SIZE = 15 * 1024 * 1024;
+  const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
+  const escapeAttribute = (value = "") =>
+    String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const formatFileSize = (bytes) =>
+    bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.max(1, Math.ceil(bytes / 1024))} KB`;
+  const validMusicFile = (file) =>
+    file &&
+    (file.type === "audio/mpeg" ||
+      (!file.type && file.name.toLowerCase().endsWith(".mp3")));
+  const validImageFile = (file) =>
+    file && ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+  const photo = (label, name, value, imageKey = "") =>
     `<div class="photo-field"><span class="photo-field__label">${label}</span><input type="hidden" name="${name}" value="${String(value || "").replace(/"/g, "&quot;")}"><div class="photo-preview-stage" data-has-photo="${value ? "true" : "false"}"><img class="image-preview" ${value ? `src="${value}"` : "hidden"}><div class="image-preview-empty" aria-hidden="true"><span>▧</span><small>Belum ada foto</small></div></div><div class="photo-actions"><label class="photo-select-button"><span class="photo-select-label">${value ? "Ganti Foto" : "Pilih Foto"}</span><input class="photo-upload" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" class="clear-photo" ${value ? "" : "hidden"}>Hapus Foto</button></div><span class="photo-field__note">JPEG, PNG, atau WEBP · Maks. 1 MB</span></div>`;
   const eventCopyFields = [
     "date",
@@ -29,13 +43,19 @@ window.AdminSections = (() => {
 
   const renderers = {
     couple: (wedding) =>
-      `<section class="form-section"><h2>Pengantin Pria</h2>${field("Nama Panggilan", "groom_name", wedding.couple.groom.name)}${field("Nama Lengkap", "groom_full_name", wedding.couple.groom.full_name)}${photo("Foto Pengantin Pria", "groom_photo", wedding.couple.groom.photo)}${childOrderField("groom_child_order", wedding.couple.groom.childOrder)}${field("Nama Ayah", "groom_father", wedding.couple.groom.father)}${field("Nama Ibu", "groom_mother", wedding.couple.groom.mother)}</section><section class="form-section"><h2>Pengantin Wanita</h2>${field("Nama Panggilan", "bride_name", wedding.couple.bride.name)}${field("Nama Lengkap", "bride_full_name", wedding.couple.bride.full_name)}${photo("Foto Pengantin Wanita", "bride_photo", wedding.couple.bride.photo)}${childOrderField("bride_child_order", wedding.couple.bride.childOrder)}${field("Nama Ayah", "bride_father", wedding.couple.bride.father)}${field("Nama Ibu", "bride_mother", wedding.couple.bride.mother)}</section>`,
+      `<section class="form-section"><h2>Foto Undangan</h2>${photo("Foto Cover", "cover_photo", wedding.cover?.photo)}${photo("Foto Couple", "couple_photo", wedding.couple?.couple_photo)}<div class="gallery-field"><span class="photo-field__label">Galeri Foto</span><label class="photo-select-button"><span>Pilih Foto Galeri</span><input class="gallery-upload" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><div class="gallery-preview">${(Array.isArray(wedding.gallery) ? wedding.gallery : []).map((url) => `<article class="gallery-item" data-url="${escapeAttribute(url)}"><img src="${escapeAttribute(url)}" alt="Foto galeri"><button type="button" class="remove-gallery-item">Hapus</button></article>`).join("")}</div><span class="photo-field__note">JPEG, PNG, atau WEBP · Maks. 5 MB per foto</span></div></section><section class="form-section"><h2>Pengantin Pria</h2>${field("Nama Panggilan", "groom_name", wedding.couple.groom.name)}${field("Nama Lengkap", "groom_full_name", wedding.couple.groom.full_name)}${photo("Foto Pengantin Pria", "groom_photo", wedding.couple.groom.photo)}${childOrderField("groom_child_order", wedding.couple.groom.childOrder)}${field("Nama Ayah", "groom_father", wedding.couple.groom.father)}${field("Nama Ibu", "groom_mother", wedding.couple.groom.mother)}</section><section class="form-section"><h2>Pengantin Wanita</h2>${field("Nama Panggilan", "bride_name", wedding.couple.bride.name)}${field("Nama Lengkap", "bride_full_name", wedding.couple.bride.full_name)}${photo("Foto Pengantin Wanita", "bride_photo", wedding.couple.bride.photo)}${childOrderField("bride_child_order", wedding.couple.bride.childOrder)}${field("Nama Ayah", "bride_father", wedding.couple.bride.father)}${field("Nama Ibu", "bride_mother", wedding.couple.bride.mother)}</section>`,
     event: (wedding) =>
       `<section class="form-section event-toolbar"><div class="custom-event-card__head"><div><h2>Detail Acara</h2><p>Akad dan Resepsi tetap menjadi acara utama.</p></div><button type="button" class="add-custom-event">+ Tambah Event</button></div></section><div class="custom-events-group" id="custom-events-before">${customEvents(wedding).filter((item) => item.position === "before").map((item) => customEventFields(item, "before")).join("")}</div>${eventFields("akad", "Akad", wedding.event.akad)}${eventFields("reception", "Resepsi", wedding.event.reception, sameEventDetails(wedding.event.akad, wedding.event.reception))}<div class="custom-events-group" id="custom-events-after">${customEvents(wedding).filter((item) => item.position !== "before").map((item) => customEventFields(item, "after")).join("")}</div><section class="form-section"><label>Countdown menuju<select name="countdown_target"><option value="akad" ${wedding.event.countdown_target === "akad" ? "selected" : ""}>Akad</option><option value="reception" ${wedding.event.countdown_target === "reception" ? "selected" : ""}>Resepsi</option></select></label></section>`,
     digital_gift: (wedding) =>
       `<section class="form-section"><label><input type="checkbox" name="gift_enabled" ${wedding.digital_gift.enabled ? "checked" : ""}>Digital Gift</label><div id="accounts">${wedding.digital_gift.accounts.map((account) => `<div class="account-row">${field("Bank", "account_bank", account.bank)}${field("Nomor", "account_number", account.number)}${field("Atas Nama", "account_holder", account.holder)}<button type="button" class="remove-account">Hapus</button></div>`).join("")}</div><button type="button" class="add-account">+ Tambah Rekening</button></section>`,
-    music: (wedding) =>
-      `<section class="form-section"><label><input type="checkbox" name="music_enabled" ${wedding.music.enabled ? "checked" : ""}>Musik</label>${field("Music URL", "music_url", wedding.music.url)}<label><input type="checkbox" name="music_autoplay" ${wedding.music.autoplay ? "checked" : ""}>Autoplay</label></section>`,
+    music: (wedding, { musicState = {} } = {}) => {
+      const music = wedding.music || {};
+      const previewUrl = musicState.previewUrl || music.url || "";
+      const hasMusic = Boolean(musicState.pendingFile || music.url);
+      const fileName = musicState.pendingFile?.name || music.file_name || (music.url ? "Musik tersimpan" : "");
+      const fileSize = musicState.pendingFile ? formatFileSize(musicState.pendingFile.size) : "";
+      return `<section class="form-section music-section"><label><input type="checkbox" name="music_enabled" ${music.enabled ? "checked" : ""}>Musik</label><div class="music-upload"><span class="photo-field__label">Upload Musik MP3</span><div class="photo-actions"><label class="photo-select-button"><span class="music-select-label">${hasMusic ? "Ganti File" : "Pilih File"}</span><input class="music-upload-input" type="file" accept=".mp3,audio/mpeg"></label><button type="button" class="clear-music" ${hasMusic ? "" : "hidden"}>Hapus Musik</button></div><p class="music-file-info" ${fileName ? "" : "hidden"}>${escapeAttribute(fileName)}${fileSize ? ` · ${fileSize}` : ""}</p><audio class="music-preview" controls ${previewUrl ? `src="${escapeAttribute(previewUrl)}"` : "hidden"}></audio><span class="photo-field__note">MP3 saja · Maks. 15 MB</span></div>${field("URL Musik (opsional)", "music_url", music.url)}<label><input type="checkbox" name="music_autoplay" ${music.autoplay ? "checked" : ""}>Autoplay</label></section>`;
+    },
   };
 
   function updateCountdownOptions(container) {
@@ -108,20 +128,40 @@ window.AdminSections = (() => {
     );
 
   return {
-    render: (sections, wedding) =>
+    render: (sections, wedding, options = {}) =>
       sections
         .map((section) =>
           renderers[section]
-            ? renderers[section](wedding)
+            ? renderers[section](wedding, options)
             : (section !== "rsvp" &&
                 console.warn(`Section renderer belum tersedia: ${section}`),
               ""),
         )
         .join(""),
 
-    bind: (container) => {
+    bind: (container, options = {}) => {
       container.onclick = (event) => {
         const target = event.target;
+        if (target.closest(".clear-music")) {
+          const state = options.musicState;
+          if (!state) return;
+          if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+          state.previewUrl = "";
+          state.pendingFile = null;
+          state.pendingDelete = Boolean(state.storagePath);
+          const section = target.closest(".music-section");
+          section.querySelector(".music-upload-input").value = "";
+          section.querySelector(".music-select-label").textContent = "Pilih File";
+          section.querySelector(".music-file-info").hidden = true;
+          const preview = section.querySelector(".music-preview");
+          preview.pause();
+          preview.removeAttribute("src");
+          preview.hidden = true;
+          target.hidden = true;
+          section.querySelector('[name="music_url"]').value = "";
+          section.querySelector('[name="music_enabled"]').checked = false;
+          return;
+        }
         if (target.closest(".add-custom-event")) {
           const beforeEvents = container.querySelector("#custom-events-before");
           beforeEvents.insertAdjacentHTML(
@@ -138,6 +178,25 @@ window.AdminSections = (() => {
         const customCard = target.closest(".custom-event-card");
         if (customCard && target.closest(".remove-custom-event")) {
           customCard.remove();
+          return;
+        }
+        if (target.closest(".remove-gallery-item")) {
+          const item = target.closest(".gallery-item");
+          const url = item.dataset.url;
+          if (item.classList.contains("is-pending") && options.imageState) {
+            const source = item.querySelector("img").src;
+            options.imageState.pendingGallery = options.imageState.pendingGallery.filter(
+              (entry) => {
+                if (entry.objectUrl !== source) return true;
+                URL.revokeObjectURL(entry.objectUrl);
+                return false;
+              },
+            );
+          } else {
+            const path = window.ImageStorage?.pathFromPublicUrl(url);
+            if (path && options.imageState) options.imageState.deletedGallery.push(path);
+          }
+          item.remove();
           return;
         }
         if (customCard && target.closest(".move-custom-up")) {
@@ -165,6 +224,21 @@ window.AdminSections = (() => {
           );
         if (target.classList.contains("clear-photo")) {
           const photoField = target.closest(".photo-field");
+          const imageName = photoField.querySelector('[type="hidden"]').name;
+          const imageKey = {
+            cover_photo: "cover",
+            couple_photo: "couple",
+            groom_photo: "groom",
+            bride_photo: "bride",
+          }[imageName];
+          if (options.imageState && imageKey) {
+            options.imageState.pending[imageKey] = null;
+            options.imageState.deleted[imageKey] = Boolean(
+              window.ImageStorage?.pathFromPublicUrl(
+                photoField.querySelector('[type="hidden"]').value,
+              ),
+            );
+          }
           photoField.querySelector('[type="hidden"]').value = "";
           const image = photoField.querySelector("img");
           image.removeAttribute("src");
@@ -179,11 +253,11 @@ window.AdminSections = (() => {
           const file = input.files[0];
           if (
             !file ||
-            file.size > 1048576 ||
-            !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+            file.size > MAX_IMAGE_FILE_SIZE ||
+            !validImageFile(file)
           ) {
             window.AdminUI?.showToast(
-              "Foto harus JPEG, PNG, atau WEBP dengan ukuran maksimum 1 MB.",
+              "Foto harus JPEG, PNG, atau WEBP dengan ukuran maksimum 5 MB.",
               "error",
             );
             input.value = "";
@@ -197,8 +271,78 @@ window.AdminSections = (() => {
             image.src = reader.result;
             image.hidden = false;
             setPhotoState(photoField, true);
+            const imageKey = {
+              cover_photo: "cover",
+              couple_photo: "couple",
+              groom_photo: "groom",
+              bride_photo: "bride",
+            }[photoField.querySelector('[type="hidden"]').name];
+            if (options.imageState && imageKey) {
+              options.imageState.pending[imageKey] = file;
+              options.imageState.deleted[imageKey] = false;
+            }
           };
           reader.readAsDataURL(file);
+        };
+      });
+
+      container.querySelectorAll(".gallery-upload").forEach((input) => {
+        input.onchange = () => {
+          const files = [...input.files];
+          const invalid = files.find(
+            (file) => !validImageFile(file) || file.size > MAX_IMAGE_FILE_SIZE,
+          );
+          if (invalid) {
+            window.AdminUI?.showToast(
+              "Galeri harus JPEG, PNG, atau WEBP dengan ukuran maksimum 5 MB per foto.",
+              "error",
+            );
+            input.value = "";
+            return;
+          }
+          const state = options.imageState;
+          if (!state) return;
+          const preview = input.closest(".gallery-field").querySelector(".gallery-preview");
+          files.forEach((file) => {
+            const objectUrl = URL.createObjectURL(file);
+            state.pendingGallery.push({ file, objectUrl });
+            const item = document.createElement("article");
+            item.className = "gallery-item is-pending";
+            item.innerHTML = `<img src="${objectUrl}" alt="Foto galeri baru"><button type="button" class="remove-gallery-item">Hapus</button>`;
+            preview.append(item);
+          });
+          input.value = "";
+        };
+      });
+
+      container.querySelectorAll(".music-upload-input").forEach((input) => {
+        input.onchange = () => {
+          const file = input.files[0];
+          if (!validMusicFile(file)) {
+            window.AdminUI?.showToast("Hanya file MP3 yang diperbolehkan.", "error");
+            input.value = "";
+            return;
+          }
+          if (file.size > MAX_MUSIC_FILE_SIZE) {
+            window.AdminUI?.showToast("Ukuran musik maksimal 15 MB.", "error");
+            input.value = "";
+            return;
+          }
+          const state = options.musicState;
+          if (!state) return;
+          if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+          state.pendingFile = file;
+          state.pendingDelete = false;
+          state.previewUrl = URL.createObjectURL(file);
+          const section = input.closest(".music-section");
+          section.querySelector(".music-select-label").textContent = "Ganti File";
+          const info = section.querySelector(".music-file-info");
+          info.textContent = `${file.name} · ${formatFileSize(file.size)}`;
+          info.hidden = false;
+          const preview = section.querySelector(".music-preview");
+          preview.src = state.previewUrl;
+          preview.hidden = false;
+          section.querySelector(".clear-music").hidden = false;
         };
       });
 
@@ -253,6 +397,14 @@ window.AdminSections = (() => {
       const elements = form.elements;
       const wedding = structuredClone(old);
       if (sections.includes("couple")) {
+        wedding.cover = {
+          ...(wedding.cover || {}),
+          photo: elements.cover_photo.value,
+        };
+        wedding.couple.couple_photo = elements.couple_photo.value;
+        wedding.gallery = [...form.querySelectorAll(".gallery-item[data-url]")].map(
+          (item) => item.dataset.url,
+        );
         Object.assign(wedding.couple.groom, {
           name: trim(elements.groom_name.value),
           full_name: trim(elements.groom_full_name.value),
@@ -296,6 +448,7 @@ window.AdminSections = (() => {
       }
       if (sections.includes("music"))
         wedding.music = {
+          ...wedding.music,
           enabled: elements.music_enabled.checked,
           url: trim(elements.music_url.value),
           autoplay: elements.music_autoplay.checked,
@@ -303,7 +456,7 @@ window.AdminSections = (() => {
       return wedding;
     },
 
-    validate: (form, sections) => {
+    validate: (form, sections, options = {}) => {
       const elements = form.elements;
       if (sections.includes("couple")) {
         if (!trim(elements.groom_name.value))
@@ -358,7 +511,8 @@ window.AdminSections = (() => {
       if (
         sections.includes("music") &&
         elements.music_enabled.checked &&
-        !trim(elements.music_url.value)
+        !trim(elements.music_url.value) &&
+        !options.musicState?.pendingFile
       )
         return "Music URL wajib diisi ketika Musik diaktifkan.";
       return "";

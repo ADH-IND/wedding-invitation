@@ -163,7 +163,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const now = new Date().toISOString();
     return {
       id: AdminUtils.id("WDG"), slug: "", template_id: template.id, status: "draft",
-      cover: { photo: "" },
+      cover: { photo: "" }, gallery: [],
       couple: { couple_photo: "", groom: { name: "", full_name: "", photo: "", childOrder: "", father: "", mother: "" }, bride: { name: "", full_name: "", photo: "", childOrder: "", father: "", mother: "" } },
       event: {
         akad: { enabled: true, date: "", start_time: "", end_time: "", location: "", address: "", maps_url: "" },
@@ -179,6 +179,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   function editor() {
     const old = data().weddings.find((wedding) => wedding.id === query.get("id"));
     let workingWedding = structuredClone(old || blank());
+    const musicState = {
+      pendingFile: null,
+      pendingDelete: false,
+      previewUrl: "",
+      storagePath: workingWedding.music?.storage_path || "",
+    };
+    const imageState = {
+      pending: { cover: null, groom: null, bride: null, couple: null },
+      deleted: { cover: false, groom: false, bride: false, couple: false },
+      pendingGallery: [],
+      deletedGallery: [],
+    };
     const template = TemplateRegistry.getTemplateById(workingWedding.template_id);
 
     $("#page-title").textContent = old ? "Edit Pesanan" : "Pesanan Baru";
@@ -208,8 +220,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const renderSections = () => {
       const sections = TemplateRegistry.getTemplateSections(workingWedding.template_id);
       $("#section-list").innerHTML = `<span class="section-list__label">Sections</span><span class="section-list__badges">${sections.map((section) => `<span class="section-badge">${escape(sectionLabel(section))}</span>`).join("")}</span>`;
-      container.innerHTML = AdminSections.render(sections, workingWedding);
-      AdminSections.bind(container, sections, workingWedding);
+      container.innerHTML = AdminSections.render(sections, workingWedding, {
+        musicState,
+        imageState,
+      });
+      AdminSections.bind(container, { musicState, imageState });
     };
 
     renderSections();
@@ -235,7 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.onsubmit = async (event) => {
       event.preventDefault();
       const sections = TemplateRegistry.getTemplateSections(workingWedding.template_id);
-      const error = AdminSections.validate(form, sections);
+      const error = AdminSections.validate(form, sections, { musicState });
       $("#order-error").textContent = error;
       if (error) return;
 
@@ -258,7 +273,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             "Link undangan sudah digunakan. Silakan gunakan nama lain.";
           return;
         }
-        const saved = await InvitationRepository.save(wedding, wedding.status);
+        const actionButtons = [...form.querySelectorAll('[name="action"]')];
+        actionButtons.forEach((button) => (button.disabled = true));
+        if (
+          musicState.pendingFile ||
+          musicState.pendingDelete ||
+          Object.values(imageState.pending).some(Boolean) ||
+          Object.values(imageState.deleted).some(Boolean) ||
+          imageState.pendingGallery.length ||
+          imageState.deletedGallery.length
+        )
+          $("#order-error").textContent = "Mengupload foto dan musik...";
+        const saved = await saveWeddingWithAssets(
+          wedding,
+          wedding.status,
+          musicState,
+          imageState,
+        );
         AdminStorage.update((store) => {
           store.weddings = [
             ...store.weddings.filter((item) => item.id !== saved.id),
@@ -276,8 +307,60 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (saveError) {
         $("#order-error").textContent =
           saveError.message || "Gagal menyimpan undangan. Silakan coba lagi.";
+        form.querySelectorAll('[name="action"]').forEach((button) => {
+          button.disabled = false;
+        });
       }
     };
+  }
+
+  async function saveWeddingWithAssets(wedding, status, musicState, imageState) {
+    const isNewInvitation = !/^[0-9a-f-]{36}$/i.test(String(wedding.id || ""));
+    const hasImages =
+      Object.values(imageState.pending).some(Boolean) ||
+      Object.values(imageState.deleted).some(Boolean) ||
+      imageState.pendingGallery.length ||
+      imageState.deletedGallery.length;
+    const hasMusic = musicState.pendingFile || musicState.pendingDelete;
+    if (!hasImages && !hasMusic)
+      return InvitationRepository.save(wedding, status);
+    const initial = isNewInvitation
+      ? await InvitationRepository.save(wedding, status === "published" ? "draft" : status)
+      : wedding;
+    const result = structuredClone(initial);
+    if (imageState.deletedGallery.length)
+      await ImageStorage.remove(imageState.deletedGallery);
+    for (const [key, file] of Object.entries(imageState.pending)) {
+      if (!file) continue;
+      const asset = await ImageStorage.upload(file, result.id, key);
+      if (key === "cover") result.cover.photo = asset.url;
+      else if (key === "couple") result.couple.couple_photo = asset.url;
+      else result.couple[key].photo = asset.url;
+    }
+    for (const key of Object.keys(imageState.deleted)) {
+      if (!imageState.deleted[key]) continue;
+      const path = ImageStorage.pathFor(result.id, key);
+      await ImageStorage.remove([path]);
+    }
+    for (const entry of imageState.pendingGallery) {
+      const asset = await ImageStorage.uploadGallery(entry.file, result.id);
+      result.gallery = [...(result.gallery || []), asset.url];
+      URL.revokeObjectURL(entry.objectUrl);
+    }
+    if (musicState.pendingDelete && !musicState.pendingFile) {
+      if (musicState.storagePath) await MusicStorage.remove(musicState.storagePath);
+      result.music = {
+        ...result.music,
+        enabled: false, url: "", storage_path: "", file_name: "", updated_at: new Date().toISOString(),
+      };
+    }
+    if (musicState.pendingFile) {
+      const asset = await MusicStorage.upload(musicState.pendingFile, initial.id);
+      result.music = { ...result.music, ...asset };
+      if (musicState.previewUrl) URL.revokeObjectURL(musicState.previewUrl);
+    }
+    result.status = status;
+    return InvitationRepository.save(result, status);
   }
 
   function rsvp(wedding) {
